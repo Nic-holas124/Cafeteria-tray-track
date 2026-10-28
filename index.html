@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cafeteria Tray Dispenser - Stack ADT Implementation</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --warning: #d97706;
+            --success: #16a34a;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #cbd5e1;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            position: relative;
+        }
+        .container {
+            width: 100%;
+            max-width: 900px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            margin-top: 10px;
+        }
+        header h1 {
+            margin: 0;
+            color: var(--primary);
+            font-size: 1.8rem;
+        }
+        header p {
+            color: var(--text-light);
+            margin: 5px 0 0 0;
+        }
+
+        /* Presentation Toggle Button */
+        .presentation-toggle-btn {
+            position: fixed !important;
+            top: 15px !important;
+            right: 15px !important;
+            width: auto !important;
+            background-color: var(--warning);
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 2000;
+        }
+        .presentation-toggle-btn:hover { background-color: #b45309; }
+
+        /* Presentation Popup Box */
+        .presentation-popup {
+            position: fixed;
+            top: 55px;
+            right: 15px;
+            width: 340px;
+            max-height: 82vh;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+            display: none;
+            flex-direction: column;
+            z-index: 2001;
+            overflow: hidden;
+        }
+        .presentation-popup.show { display: flex; }
+        .popup-header {
+            background: var(--primary);
+            color: white;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .popup-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            width: auto;
+            padding: 0;
+        }
+        .popup-body {
+            padding: 14px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.4;
+            color: var(--text);
+            text-align: left;
+        }
+        .popup-body p.prompt-text {
+            background: #eef2ff;
+            padding: 8px;
+            border-radius: 6px;
+            border-left: 3px solid var(--primary);
+            margin: 0 0 10px 0;
+        }
+        .popup-body h4 {
+            color: var(--primary);
+            margin: 10px 0 4px 0;
+            font-size: 13px;
+        }
+        .popup-body ul { margin: 0 0 8px 0; padding-left: 15px; }
+        .popup-body li { margin-bottom: 3px; }
+
+        /* App Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+        .card h3 {
+            margin-top: 0;
+            font-size: 1.1rem;
+            color: var(--primary);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 8px;
+        }
+        .controls-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .input-row {
+            display: flex;
+            gap: 8px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 12px;
+            font-size: 0.95rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            outline: none;
+        }
+        input[type="text"]:focus { border-color: var(--primary); }
+        
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover:not(:disabled) { background-color: var(--primary-hover); }
+        button:disabled { background-color: var(--border); cursor: not-allowed; }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .metric-box {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .metric-box span { display: block; font-size: 0.8rem; color: var(--text-light); }
+        .metric-box strong { font-size: 1rem; color: var(--primary); }
+
+        .dispenser-box {
+            background: #f1f5f9;
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            min-height: 220px;
+            max-height: 280px;
+            display: flex;
+            flex-direction: column-reverse; /* LIFO visual stack from bottom up */
+            align-items: center;
+            gap: 6px;
+            overflow-y: auto;
+        }
+        .tray-item {
+            width: 90%;
+            background: white;
+            padding: 10px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .tray-item.top-tray {
+            border: 2px solid var(--primary);
+            background: #eef2ff;
+        }
+        .badge {
+            background: var(--primary);
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .empty-msg { color: var(--text-light); font-style: italic; font-size: 0.9rem; margin: auto; }
+        
+        .code-preview {
+            background: #0f172a;
+            color: #38bdf8;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin: 0;
+            max-height: 150px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Presentation Guide Button -->
+    <button class="presentation-toggle-btn" onclick="togglePresentationPopup()">💡 Defense & Q&A Guide</button>
+
+    <!-- Presentation Popup Box -->
+    <div id="presentationPopup" class="presentation-popup">
+        <div class="popup-header">
+            <span>Academic Presentation Notes</span>
+            <button class="popup-close" onclick="togglePresentationPopup()">×</button>
+        </div>
+        <div class="popup-body">
+            <p class="prompt-text"><strong>Project Theme:</strong> Abstract Data Type (ADT) Stack Implementation via Cafeteria Tray Model.</p>
+            
+            <h4>1. Core Stack Principles (LIFO)</h4>
+            <ul>
+                <li><strong>Last-In, First-Out:</strong> The element inserted most recently is retrieved first.</li>
+                <li><strong>Encapsulation:</strong> Access is restricted strictly to the top pointer.</li>
+            </ul>
+
+            <h4>2. Time & Space Complexity</h4>
+            <ul>
+                <li><strong>Push / Pop / Peek:</strong> O(1) Constant Time.</li>
+                <li><strong>Space Complexity:</strong> O(N) linear space relative to the number of elements.</li>
+            </ul>
+
+            <h4>3. Why This Analogy Works</h4>
+            <ul>
+                <li>Mirrors spring-loaded physical tray dispensers in cafeterias where staff push trays down and customers take from the top.</li>
+                <li>Directly maps to software paradigms like call stack execution frames and undo/redo history buffers.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>Stack ADT: Cafeteria Tray Dispenser</h1>
+            <p>Algorithmic LIFO Simulation & Complexity Analysis</p>
+        </header>
+
+        <div class="dashboard-grid">
+            <!-- Left Panel: Controls & Metrics -->
+            <div>
+                <div class="card">
+                    <h3>Stack Operations (ADT)</h3>
+                    <div class="controls-section">
+                        <div class="input-row">
+                            <input type="text" id="trayInput" placeholder="Enter Tray ID (e.g. Tray #104)">
+                        </div>
+                        <div class="btn-group">
+                            <button id="pushBtn">push()</button>
+                            <button id="popBtn" disabled>pop()</button>
+                        </div>
+                        <div class="btn-group">
+                            <button id="peekBtn" style="background-color: var(--success);" disabled>peek() [Top]</button>
+                            <button id="clearBtn" style="background-color: #dc2626;">Reset Stack</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Performance Metrics</h3>
+                    <div class="metrics-grid">
+                        <div class="metric-box">
+                            <span>Time Complexity</span>
+                            <strong>O(1)</strong>
+                        </div>
+                        <div class="metric-box">
+                            <span>Current Size (N)</span>
+                            <strong id="countDisplay">0</strong>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-light);">
+                        <strong>Top Element:</strong> <span id="topDisplay" style="color: var(--primary);">None</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Visual Stack & Memory State -->
+            <div>
+                <div class="card">
+                    <h3>Stack Visualization (LIFO Order)</h3>
+                    <div class="dispenser-box" id="dispenserBox">
+                        <div class="empty-msg">Stack Underflow: Dispenser is empty.</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Underlying Memory State (Array)</h3>
+                    <pre id="arrayStateView" class="code-preview">[]</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function togglePresentationPopup() {
+            const popup = document.getElementById('presentationPopup');
+            popup.classList.toggle('show');
+        }
+
+        // Stack Data Structure Initialization
+        let stack = ["Tray #101", "Tray #102", "Tray #103"];
+
+        const trayInput = document.getElementById('trayInput');
+        const pushBtn = document.getElementById('pushBtn');
+        const popBtn = document.getElementById('popBtn');
+        const peekBtn = document.getElementById('peekBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const countDisplay = document.getElementById('countDisplay');
+        const topDisplay = document.getElementById('topDisplay');
+        const dispenserBox = document.getElementById('dispenserBox');
+        const arrayStateView = document.getElementById('arrayStateView');
+
+        function updateUI() {
+            countDisplay.textContent = stack.length;
+            popBtn.disabled = stack.length === 0;
+            peekBtn.disabled = stack.length === 0;
+
+            // Update Memory Array View
+            arrayStateView.textContent = JSON.stringify(stack, null, 2);
+
+            if (stack.length === 0) {
+                topDisplay.textContent = "None (Stack Empty)";
+                dispenserBox.innerHTML = '<div class="empty-msg">Stack Underflow: Dispenser is empty.</div>';
+            } else {
+                topDisplay.textContent = stack[stack.length - 1];
+                dispenserBox.innerHTML = '';
+                
+                stack.forEach((tray, index) => {
+                    const isTop = index === stack.length - 1;
+                    const div = document.createElement('div');
+                    div.className = isTop ? 'tray-item top-tray' : 'tray-item';
+                    
+                    const span = document.createElement('span');
+                    span.textContent = tray;
+                    div.appendChild(span);
+
+                    const badge = document.createElement('span');
+                    if (isTop) {
+                        badge.className = 'badge';
+                        badge.textContent = 'TOP (Pointer)';
+                        div.appendChild(badge);
+                    } else {
+                        const subSpan = document.createElement('span');
+                        subSpan.style.color = '#64748b';
+                        subSpan.style.fontSize = '0.8rem';
+                        subSpan.textContent = `Index [${index}]`;
+                        div.appendChild(subSpan);
+                    }
+
+                    dispenserBox.appendChild(div);
+                });
+            }
+        }
+
+        function pushItem() {
+            let val = trayInput.value.trim();
+            if (!val) {
+                val = `Tray #${Math.floor(Math.random() * 900) + 100}`;
+            }
+            stack.push(val); // O(1) operation
+            trayInput.value = '';
+            updateUI();
+        }
+
+        function popItem() {
+            if (stack.length === 0) {
+                alert("Stack Underflow Error!");
+                return;
+            }
+            stack.pop(); // O(1) operation
+            updateUI();
+        }
+
+        function peekItem() {
+            if (stack.length === 0) return;
+            alert(`Peek Operation: Top element is "${stack[stack.length - 1]}"`);
+        }
+
+        pushBtn.addEventListener('click', pushItem);
+        trayInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') pushItem();
+        });
+
+        popBtn.addEventListener('click', popItem);
+        peekBtn.addEventListener('click', peekItem);
+
+        clearBtn.addEventListener('click', () => {
+            stack = [];
+            updateUI();
+        });
+
+        updateUI();
+    </script>
+</body>
+</html>
